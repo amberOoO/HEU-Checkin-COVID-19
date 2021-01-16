@@ -2,5 +2,12 @@
   "myid": "",
   "mypass": "",
   "mybound": "",
-  "mydata": {}
+  "mydata": {
+  },
+
+  "server": "smtp.qq.com",
+  "server_port": 465,
+  "sender": "example@qq.com",
+  "sender_key": "example",
+  "receiver": "example@163.com"
 }
