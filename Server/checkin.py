@@ -16,8 +16,10 @@ Created on 2020-04-13 20:20
 """
 
 import json
+import os
 import random
 import re
+import sys
 import time
 import traceback
 
@@ -25,6 +27,8 @@ import lxml.html
 import requests
 from myEmail import EmailSender
 
+# 改变工作路径为当前文件所在路径
+os.chdir(os.path.dirname(sys.argv[0]))
 """
 请在config.json中填写相应信息
 my_id: 学号
