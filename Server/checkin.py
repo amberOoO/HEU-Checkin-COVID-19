@@ -49,14 +49,17 @@ with open("config.json", "r", encoding="utf-8") as f:
 headers = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
     "Accept-Encoding": "gzip, deflate, br",
-    "Accept-Language": "zh-CN",
+    "Accept-Language": "zh-CN,zh;q=0.9",
     "Cache-Control": "max-age=0",
     "Connection": "keep-alive",
-    "Content-Type": "application/x-www-form-urlencoded",
-    "Cookie": "MESSAGE_TICKET=%7B%22times%22%3A0%7D; ",
+    # "Content-Type": "application/x-www-form-urlencoded",
+    "Cookie": "",
     "Host": "cas.hrbeu.edu.cn",
+    "Origin": "https://cas.hrbeu.edu.cn",
+    "Referer": "https://cas.hrbeu.edu.cn/cas/login",
+
     "Upgrade-Insecure-Requests": "1",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.18362"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36 Edg/88.0.705.74"
 }
 
 data = {
@@ -78,7 +81,7 @@ success = True
 if __name__ == '__main__':
     try:
         # get
-        url_login = 'https://cas.hrbeu.edu.cn/cas/login?'
+        url_login = 'https://cas.hrbeu.edu.cn/cas/login'
         print("============================\n[debug] Begin to login ...")
         sesh = requests.session()
         req = sesh.get(url_login, proxies=proxies)
@@ -86,23 +89,76 @@ if __name__ == '__main__':
 
         # post
         login_html = lxml.html.fromstring(html_content)
-        hidden_inputs = login_html.xpath(r'//div[@id="main"]//input[@type="hidden"]')
-        user_form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
+
+        # cookie acquire
+
+        hidden_inputs = login_html.xpath(
+            r'//input[@type="hidden" and @class="for-form"]')
+        user_form = {x.attrib["name"]: x.attrib["value"]
+                     for x in hidden_inputs}
+
+        if user_form['pid'] == '':
+            user_form.pop('pid')
 
         user_form["username"] = data['username']
         user_form["password"] = data['password']
-        user_form["captcha"] = ''
-        user_form["submit"] = '登 录'
-        headers['Cookie'] = headers['Cookie'] + req.headers['Set-cookie']
-        headers[
-            'User-Agent'] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36 Edg/87.0.664.75"
+        # user_form["captcha"] = ''
+        user_form["_eventId"] = 'submit'
+
+        # headers['Cookie'] = headers['Cookie'] + req.headers['Set-cookie']
+        headers['Cookie'] = headers['Cookie'] + req.headers['Set-cookie'].split(' ')[0] + req.headers['Set-cookie'].split(' ')[3]
+
+        # print(req.headers['Set-cookie'])
+        # print(req.headers['Set-cookie'].split(' ')[0])
+        # print(req.headers['Set-cookie'].split(' ')[3])
+
+        headers['User-Agent'] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36 Edg/87.0.664.75"
         req.url = f'https://cas.hrbeu.edu.cn/cas/login'
-        response302 = sesh.post(req.url, data=user_form, headers=headers, proxies=proxies)
+
+        tmp_headers = headers.copy()
+        tmp_headers['Cookie'] = tmp_headers['Cookie'] + req.headers['Set-cookie']
+
+        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/css/modules/login.2804a2c6afaaea5b748615e8962b652a.css?e72b994e962819eb795d",
+                 headers=headers, proxies=proxies)
+        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/js/modules/login.3ca4faf6f3c2c795ec39.js?e72b994e962819eb795d",
+                 headers=headers, proxies=proxies)
+        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/source/dingtalk.open.js",
+                 headers=headers, proxies=proxies)
+
+        response302 = sesh.post(req.url, data=user_form,
+                                headers=headers, proxies=proxies)
+
+        tmp_headers['Cookie'] = tmp_headers['Cookie'] + \
+            req.headers['Set-cookie']
+        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/css/modules/success.e7a71379e2a00fe3633da1d6d69ef866.css?e72b994e962819eb795d=",
+                 headers=tmp_headers, proxies=proxies)
+        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/js/modules/success.1f12e1b1e088cb52e798.js?e72b994e962819eb795d=",
+                 headers=tmp_headers, proxies=proxies)
+
+        response302 = sesh.get(req.url, data=user_form,
+                                headers=headers, proxies=proxies)
         # casRes = response302.history[0]
         # print("[debug] CAS response header", findStr(casRes.headers['Set-Cookie'], 'CASTGC'))
 
+        # print("################")
+        # print(html_content)
+        # print(user_form)
+        # print(response302.request)
+        # print(response302.request.headers)
+        # print(response302.headers)
+        # print(response302.text)
+        # time.sleep(2)
+
         # get
-        jkgc_response = sesh.get("http://jkgc.hrbeu.edu.cn/infoplus/form/JSXNYQSBtest/start", proxies=proxies)
+        jkgc_response = sesh.get(
+            "http://jkgc.hrbeu.edu.cn/infoplus/form/JSXNYQSBtest/start", proxies=proxies)
+        jkgc_response = sesh.get(
+            "http://jkgc.hrbeu.edu.cn/infoplus/form/JSXNYQSBtest/start", proxies=proxies)
+
+        # print("#########")
+        # print(jkgc_response.headers)
+        # print(jkgc_response.text)
+        
         # post
         headers['Accept'] = '*/*'
         headers['Cookie'] = jkgc_response.request.headers['Cookie']
@@ -122,7 +178,8 @@ if __name__ == '__main__':
         }
         jkgc_form['formData'] = json.dumps(jkgc_form['formData'])
         jkgc_url = 'http://jkgc.hrbeu.edu.cn/infoplus/interface/start'
-        response3 = sesh.post(jkgc_url, data=jkgc_form, headers=headers, proxies=proxies)
+        response3 = sesh.post(jkgc_url, data=jkgc_form,
+                              headers=headers, proxies=proxies)
 
         # get
         form_url = json.loads(response3.text)['entities'][0]
@@ -152,7 +209,8 @@ if __name__ == '__main__':
             'stepId': re.match(r'.*form/(\d*?)/', form_response.url).group(1),
             'timestamp': str(int(time.time() + 0.5))
         }
-        response_end = sesh.post(submit_url, data=submit_form, headers=headers, proxies=proxies)
+        response_end = sesh.post(
+            submit_url, data=submit_form, headers=headers, proxies=proxies)
         resJson = json.loads(response_end.text)
 
         # 表单填写完成，返回结果
@@ -195,5 +253,6 @@ if __name__ == '__main__':
                 text="邮件自动生成, 无需回复"
             )
 
-        print('[info] Task Finished at', time.strftime("%Y-%m-%d %H:%M:%S %A", time.localtime()))
+        print('[info] Task Finished at', time.strftime(
+            "%Y-%m-%d %H:%M:%S %A", time.localtime()))
         print('============================\n')
