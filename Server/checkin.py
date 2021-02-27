@@ -106,7 +106,9 @@ if __name__ == '__main__':
         user_form["_eventId"] = 'submit'
 
         # headers['Cookie'] = headers['Cookie'] + req.headers['Set-cookie']
-        headers['Cookie'] = headers['Cookie'] + req.headers['Set-cookie'].split(' ')[0] + req.headers['Set-cookie'].split(' ')[3]
+        # headers['Cookie'] = headers['Cookie'] + req.headers['Set-cookie'].split(' ')[0] + req.headers['Set-cookie'].split(' ')[3]
+        raw_set_cookie = req.headers['Set-cookie']
+        headers['Cookie'] = headers['Cookie'] + re.match(r'INGRESSCOOKIE=[0-9\.]*;', raw_set_cookie).group(0) + re.search(r'JSESSIONID=[0-9a-zA-Z\.]*;', raw_set_cookie).group(0)
 
         # print(req.headers['Set-cookie'])
         # print(req.headers['Set-cookie'].split(' ')[0])
@@ -115,28 +117,9 @@ if __name__ == '__main__':
         headers['User-Agent'] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36 Edg/87.0.664.75"
         req.url = f'https://cas.hrbeu.edu.cn/cas/login'
 
-        tmp_headers = headers.copy()
-        tmp_headers['Cookie'] = tmp_headers['Cookie'] + req.headers['Set-cookie']
-
-        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/css/modules/login.2804a2c6afaaea5b748615e8962b652a.css?e72b994e962819eb795d",
-                 headers=headers, proxies=proxies)
-        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/js/modules/login.3ca4faf6f3c2c795ec39.js?e72b994e962819eb795d",
-                 headers=headers, proxies=proxies)
-        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/source/dingtalk.open.js",
-                 headers=headers, proxies=proxies)
-
         response302 = sesh.post(req.url, data=user_form,
                                 headers=headers, proxies=proxies)
 
-        tmp_headers['Cookie'] = tmp_headers['Cookie'] + \
-            req.headers['Set-cookie']
-        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/css/modules/success.e7a71379e2a00fe3633da1d6d69ef866.css?e72b994e962819eb795d=",
-                 headers=tmp_headers, proxies=proxies)
-        sesh.get("https://cas.hrbeu.edu.cn/cas/resources/E7rD9PrgTl/static/js/modules/success.1f12e1b1e088cb52e798.js?e72b994e962819eb795d=",
-                 headers=tmp_headers, proxies=proxies)
-
-        response302 = sesh.get(req.url, data=user_form,
-                                headers=headers, proxies=proxies)
         # casRes = response302.history[0]
         # print("[debug] CAS response header", findStr(casRes.headers['Set-Cookie'], 'CASTGC'))
 
@@ -152,6 +135,7 @@ if __name__ == '__main__':
         # get
         jkgc_response = sesh.get(
             "http://jkgc.hrbeu.edu.cn/infoplus/form/JSXNYQSBtest/start", proxies=proxies)
+        # 这儿前边一次get是用来获取新的JSESSIONID和INGRESSCOOKIE
         jkgc_response = sesh.get(
             "http://jkgc.hrbeu.edu.cn/infoplus/form/JSXNYQSBtest/start", proxies=proxies)
 
